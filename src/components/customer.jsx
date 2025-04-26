@@ -23,7 +23,9 @@ import {
   CalendarDays,
   ArrowUpDown,
   ChevronDown,
-  User
+  User,
+  Map,
+  Navigation
 } from "lucide-react";
 import { useAppStore, Views } from '../store/app.store';
 import axios from 'axios';
@@ -338,6 +340,12 @@ const CustomersList = () => {
     }
   };
 
+  // Handle Google Maps open
+  const openInGoogleMaps = (lat, lng, e) => {
+    e.stopPropagation(); // Prevent the card/row click event
+    window.open(`https://www.google.com/maps?q=${lat},${lng}`, '_blank');
+  };
+
   return (
     <div className="pb-20 main-content">
       <Card className="bg-white shadow-lg border-none rounded-lg overflow-hidden">
@@ -622,7 +630,19 @@ const CustomersList = () => {
                             {customer.location && (
                               <div className="mt-1 flex items-center text-xs text-gray-500">
                                 <MapPin size={12} className="mr-1" />
-                                {customer.location}
+                                <span className="mr-1">{customer.location}</span>
+                                {customer.latitude && customer.longtitude && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-6 ml-1 py-0 px-2 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-colors flex items-center gap-1 shadow-sm"
+                                    onClick={(e) => openInGoogleMaps(customer.latitude, customer.longtitude, e)}
+                                    title="View on Google Maps"
+                                  >
+                                    <Navigation size={12} className="text-blue-600" />
+                                    <span>Map</span>
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>
@@ -675,7 +695,19 @@ const CustomersList = () => {
                               {customer.location && (
                                 <div className="flex items-center text-sm text-gray-500">
                                   <MapPin size={14} className="mr-1 text-gray-400" />
-                                  {customer.location}
+                                  <span>{customer.location}</span>
+                                  {customer.latitude && customer.longtitude && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 ml-2 py-0 px-2.5 text-blue-600 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 hover:border-blue-300 transition-colors flex items-center gap-1 shadow-sm"
+                                      onClick={(e) => openInGoogleMaps(customer.latitude, customer.longtitude, e)}
+                                      title="View on Google Maps"
+                                    >
+                                      <Navigation size={14} className="text-blue-600" />
+                                      <span>View Map</span>
+                                    </Button>
+                                  )}
                                 </div>
                               )}
                             </div>
