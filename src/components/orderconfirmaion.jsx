@@ -49,7 +49,8 @@ import {
   Search,
   Star,
   Package,
-  Clipboard
+  Clipboard,
+  PlusCircle
 } from "lucide-react";
 
 // Mock data for autocomplete
@@ -60,34 +61,6 @@ const customers = [
   { id: 4, name: "Priya Sharma", phone: "6543210987", lastOrder: '2 days ago', totalOrders: 32, favoriteItems: ['Beef Steak', 'Fish Fry'] },
   { id: 5, name: "Mohammed Ali", phone: "5432109876", lastOrder: '5 days ago', totalOrders: 8, favoriteItems: ['Chicken Wings', 'Pork Ribs'] },
 ];
-
-// Product catalog with prices and descriptions
-const productCatalog = {
-  chicken: [
-    { id: 'c1', name: 'Chicken Breast', price: 180, unit: 'kg', description: 'Fresh boneless chicken breast' },
-    { id: 'c2', name: 'Chicken Thigh', price: 160, unit: 'kg', description: 'Juicy chicken thighs' },
-    { id: 'c3', name: 'Whole Chicken', price: 220, unit: 'pc', description: 'Farm fresh whole chicken' },
-    { id: 'c4', name: 'Chicken Wings', price: 140, unit: 'kg', description: 'Perfect for frying or grilling' },
-  ],
-  beef: [
-    { id: 'b1', name: 'Beef Sirloin', price: 450, unit: 'kg', description: 'Premium cut beef sirloin' },
-    { id: 'b2', name: 'Ground Beef', price: 320, unit: 'kg', description: 'Fresh ground beef' },
-    { id: 'b3', name: 'Beef Ribs', price: 380, unit: 'kg', description: 'Juicy beef ribs' },
-  ],
-  pork: [
-    { id: 'p1', name: 'Pork Chops', price: 380, unit: 'kg', description: 'Tender pork chops' },
-    { id: 'p2', name: 'Pork Belly', price: 420, unit: 'kg', description: 'Pork belly' },
-  ],
-  fish: [
-    { id: 'f1', name: 'King Fish', price: 550, unit: 'kg', description: 'Fresh king fish steaks' },
-    { id: 'f2', name: 'Prawns', price: 650, unit: 'kg', description: 'Jumbo prawns' },
-    { id: 'f3', name: 'Pomfret', price: 600, unit: 'kg', description: 'Fresh white pomfret' },
-  ],
-  goat: [
-    { id: 'g1', name: 'Goat Meat', price: 750, unit: 'kg', description: 'Fresh goat meat cuts' },
-    { id: 'g2', name: 'Goat Ribs', price: 680, unit: 'kg', description: 'Tender goat ribs' },
-  ],
-};
 
 const deliveryPersonnel = [
   { id: 1, name: 'YADHU', rating: 4.8, deliveries: 128, status: 'Available' },
@@ -111,11 +84,6 @@ const CreateOrder = () => {
   const [formData, setFormData] = useState({
     customer: '',
     mobile: '',
-    chicken: '',
-    beef: '',
-    pork: '',
-    fish: '',
-    goat: '',
     items: '',
     deliveryCharge: '40',
     orderDetails: '',
@@ -130,11 +98,30 @@ const CreateOrder = () => {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [focusedField, setFocusedField] = useState(null);
-  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [orderSummaryOpen, setOrderSummaryOpen] = useState(true);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // API Data state
+  const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [showProductSuggestions, setShowProductSuggestions] = useState(false);
+  
+  // Add Item Modal state
+  const [showAddItemModal, setShowAddItemModal] = useState(false);
+  const [newItem, setNewItem] = useState({
+    name: '',
+    price: '',
+    unit: 'kg',
+    net_wt: '',
+    description: ''
+  });
   
   // Theme colors
   const theme = {
@@ -146,36 +133,120 @@ const CreateOrder = () => {
     deliveryColor: 'bg-[#00FF80]',
   };
   
+  // Fetch products from API
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Replace with actual API call in production
+        const response = await fetch('https://ecopeedika.com/api/products');
+        const data = await response.json();
+        
+        // For demo, using the provided API response data
+        // const data = [
+        //   {
+        //     id: 1,
+        //     name: "BROILER CHICKEN",
+        //     description: null,
+        //     image: "uploads/raw chicken 1.jpg",
+        //     category_id: 10,
+        //     purchase_rate: 0,
+        //     wholesale_rate: 0,
+        //     sale_rate: 130,
+        //     mrp: 120,
+        //     net_wt: "1kg",
+        //     unit: "kg",
+        //     qty_inc_factor: 1,
+        //     is_available: 1,
+        //     created_at: null,
+        //     updated_at: "2025-01-04T08:10:32.000000Z"
+        //   },
+        //   {
+        //     id: 2,
+        //     name: "GOAT",
+        //     description: "",
+        //     image: "uploads/download.jpeg",
+        //     category_id: 12,
+        //     purchase_rate: 0,
+        //     wholesale_rate: 0,
+        //     sale_rate: 700,
+        //     mrp: 350,
+        //     net_wt: "500gm",
+        //     unit: "kg",
+        //     qty_inc_factor: 0.5,
+        //     is_available: 1,
+        //     created_at: null,
+        //     updated_at: "2025-01-05T09:49:34.000000Z"
+        //   },
+        //   {
+        //     id: 3,
+        //     name: "BEEF",
+        //     description: "",
+        //     image: "uploads/1695888734141_SKU-1564_0.jpg",
+        //     category_id: 11,
+        //     purchase_rate: 0,
+        //     wholesale_rate: 0,
+        //     sale_rate: 380,
+        //     mrp: 350,
+        //     net_wt: "500g",
+        //     unit: "kg",
+        //     qty_inc_factor: 0.5,
+        //     is_available: 1,
+        //     created_at: null,
+        //     updated_at: "2025-01-05T09:47:13.000000Z"
+        //   },
+        //   {
+        //     id: 4,
+        //     name: "PORK",
+        //     description: "",
+        //     image: "uploads/1695888734141_SKU-1564_0.jpg",
+        //     category_id: 13,
+        //     purchase_rate: 0,
+        //     wholesale_rate: 0,
+        //     sale_rate: 320,
+        //     mrp: 150,
+        //     net_wt: "500g",
+        //     unit: "kg",
+        //     qty_inc_factor: 0.5,
+        //     is_available: 1,
+        //     created_at: null,
+        //     updated_at: "2025-01-08T05:47:34.000000Z"
+        //   }
+        // ];
+        
+        setProducts(data);
+        setIsLoading(false);
+      } catch (err) {
+        setError('Failed to fetch products');
+        setIsLoading(false);
+        console.error('Error fetching products:', err);
+      }
+    };
+    
+    fetchProducts();
+  }, []);
+  
   // Calculate form completion progress
   useEffect(() => {
     const requiredFields = ['customer', 'mobile', 'location', 'deliveryBy'];
-    const optionalFields = ['chicken', 'beef', 'pork', 'fish', 'goat', 'items', 'orderDetails', 'deliveryCharge'];
     
     let filledRequired = 0;
-    let filledOptional = 0;
     
     requiredFields.forEach(field => {
       if (formData[field]) filledRequired++;
     });
     
-    optionalFields.forEach(field => {
-      if (formData[field]) filledOptional++;
-    });
+    // At least one product must be selected
+    const hasProduct = selectedProducts.length > 0;
     
-    // At least one product category must be filled
-    const hasProduct = ['chicken', 'beef', 'pork', 'fish', 'goat', 'items'].some(field => formData[field]);
-    
-    // Calculate progress - required fields contribute 70%, optional contribute 30%
+    // Calculate progress - required fields contribute 70%, products contribute 30%
     const requiredProgress = (filledRequired / requiredFields.length) * 70;
-    const optionalProgress = (filledOptional / optionalFields.length) * 30;
+    const productProgress = hasProduct ? 30 : 0;
     
     // If no product is selected, cap progress at 40%
-    const totalProgress = hasProduct ? 
-      Math.min(100, Math.round(requiredProgress + optionalProgress)) : 
-      Math.min(40, Math.round(requiredProgress + optionalProgress));
+    const totalProgress = Math.min(100, Math.round(requiredProgress + productProgress));
     
     setFormProgress(totalProgress);
-  }, [formData]);
+  }, [formData, selectedProducts]);
   
   // Calculate total bill amount
   useEffect(() => {
@@ -212,23 +283,39 @@ const CreateOrder = () => {
     }
   }, [formData.customer]);
   
+  // Search products based on search term
+  useEffect(() => {
+    if (searchTerm.length > 0) {
+      const results = products.filter(product => 
+        product.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setSearchResults(results);
+      setShowProductSuggestions(true);
+    } else {
+      setSearchResults([]);
+      setShowProductSuggestions(false);
+    }
+  }, [searchTerm, products]);
+  
   // Handle input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [name]: value
-    });
+    }));
     
-    // Show product suggestions when typing in product fields
-    if (['chicken', 'beef', 'pork', 'fish', 'goat'].includes(name) && value) {
-      setShowProductSuggestions(name);
-    } else if (name === 'customer' && !value) {
+    if (name === 'customer' && !value) {
       setFormData(prev => ({
         ...prev,
         mobile: '' // Clear phone when customer is cleared
       }));
     }
+  };
+  
+  // Handle search input change
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
   };
   
   // Select customer from suggestions
@@ -242,7 +329,7 @@ const CreateOrder = () => {
   };
   
   // Add product to order
-  const addProduct = (product, category) => {
+  const addProduct = (product) => {
     // Check if product already exists in selection
     const existingIndex = selectedProducts.findIndex(p => p.id === product.id);
     
@@ -255,50 +342,69 @@ const CreateOrder = () => {
       // Add new product
       setSelectedProducts([
         ...selectedProducts,
-        { ...product, category, quantity: 1 }
+        { 
+          ...product, 
+          quantity: 1,
+          price: product.sale_rate, // Use sale_rate from API as the price
+        }
       ]);
     }
     
-    // Update form data
-    setFormData(prev => ({
-      ...prev,
-      [category]: prev[category] ? `${prev[category]}, ${product.name}` : product.name
-    }));
-    
+    // Clear search after adding
+    setSearchTerm('');
     setShowProductSuggestions(false);
+  };
+  
+  // Add custom product from modal
+  const addCustomProduct = () => {
+    // Create a new product object with a unique ID 
+    const newProduct = {
+      id: `custom-${Date.now()}`,
+      name: newItem.name,
+      description: newItem.description || '',
+      sale_rate: parseFloat(newItem.price),
+      unit: newItem.unit,
+      net_wt: newItem.net_wt,
+      quantity: 1,
+      price: parseFloat(newItem.price)
+    };
+    
+    // Add to selected products
+    setSelectedProducts([...selectedProducts, newProduct]);
+    
+    // Reset new item form
+    setNewItem({
+      name: '',
+      price: '',
+      unit: 'kg',
+      net_wt: '',
+      description: ''
+    });
+    
+    // Close modal
+    setShowAddItemModal(false);
   };
   
   // Remove product from order
   const removeProduct = (productId) => {
-    const product = selectedProducts.find(p => p.id === productId);
-    if (!product) return;
-    
     const newProducts = selectedProducts.filter(p => p.id !== productId);
     setSelectedProducts(newProducts);
-    
-    // Update form data for the relevant category
-    const categoryProducts = selectedProducts
-      .filter(p => p.category === product.category && p.id !== productId)
-      .map(p => p.name)
-      .join(', ');
-    
-    setFormData(prev => ({
-      ...prev,
-      [product.category]: categoryProducts
-    }));
   };
   
   // Update product quantity
   const updateProductQuantity = (productId, change) => {
     const newProducts = selectedProducts.map(product => {
       if (product.id === productId) {
-        const newQuantity = Math.max(1, product.quantity + change);
+        const newQuantity = Math.max(0.5, product.quantity + change);
         return { ...product, quantity: newQuantity };
       }
       return product;
     });
     
-    setSelectedProducts(newProducts);
+    // Remove product if quantity becomes 0
+    const filteredProducts = newProducts.filter(product => product.quantity > 0);
+    
+    setSelectedProducts(filteredProducts);
   };
   
   // Handle form submission
@@ -328,6 +434,15 @@ const CreateOrder = () => {
       setIsSubmitting(false);
       setShowSuccess(true);
     }, 1000);
+  };
+  
+  // Handle new item input changes
+  const handleNewItemChange = (e) => {
+    const { name, value } = e.target;
+    setNewItem({
+      ...newItem,
+      [name]: value
+    });
   };
   
   // Get the currently selected location details
@@ -559,293 +674,137 @@ const CreateOrder = () => {
                   </div>
                   
                   <div className="p-4 space-y-4">
-                    {/* Products grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {/* Chicken Products */}
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Chicken</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'chicken' || showProductSuggestions === 'chicken' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="chicken"
-                            value={formData.chicken}
-                            onChange={handleInputChange}
-                            onFocus={() => {
-                              setFocusedField('chicken');
-                              setShowProductSuggestions('chicken');
-                            }}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Select chicken products"
-                          />
-                          <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100"
-                            onClick={() => setShowProductSuggestions(prev => prev === 'chicken' ? false : 'chicken')}>
-                            <Search size={16} />
-                          </div>
+                    {/* Products search */}
+                    <div className="relative">
+                      <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Search Products</label>
+                      <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={handleSearchChange}
+                          onFocus={() => setShowProductSuggestions(true)}
+                          className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
+                          placeholder="Search products by name..."
+                        />
+                        <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100">
+                          <Search size={16} />
                         </div>
-                        
-                        {/* Product suggestions */}
-                        {showProductSuggestions === 'chicken' && (
-                          <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
-                            {productCatalog.chicken.map((product) => (
+                      </div>
+                      
+                      {/* Product suggestions */}
+                      {showProductSuggestions && (
+                        <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
+                          {searchResults.length > 0 ? (
+                            searchResults.map((product) => (
                               <div 
                                 key={product.id}
                                 className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => addProduct(product, 'chicken')}
+                                onClick={() => addProduct(product)}
                               >
                                 <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                                    <Package size={16} className="text-gray-500" />
+                                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center flex-shrink-0">
+                                    <span className="text-xs font-bold text-gray-600">#{product.id}</span>
                                   </div>
                                   <div className="ml-2 flex-1">
                                     <div className="font-medium text-[#0a2b1d] text-sm">{product.name}</div>
                                     <div className="flex justify-between text-xs">
-                                      <span className="text-gray-600">{product.description}</span>
-                                      <span className="font-medium text-[#0a2b1d]">₹{product.price}/{product.unit}</span>
+                                      <span className="text-gray-600">{product.net_wt} {product.unit}</span>
+                                      <span className="font-medium text-[#0a2b1d]">₹{product.sale_rate}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))
+                          ) : searchTerm.length > 0 ? (
+                            <div className="p-3 text-center border-b border-gray-100">
+                              <p className="text-sm text-gray-600 mb-2">No products found matching "{searchTerm}"</p>
+                              <button
+                                type="button"
+                                onClick={() => setShowAddItemModal(true)}
+                                className="bg-[#00FF80] text-[#0a2b1d] px-3 py-1.5 rounded text-sm font-medium flex items-center justify-center mx-auto"
+                              >
+                                <PlusCircle size={14} className="mr-1" />
+                                Add New Product
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="p-3 text-center border-b border-gray-100">
+                              <p className="text-sm text-gray-600">Type to search products</p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Product Results (shown below search) */}
+                      {searchTerm && searchResults.length > 0 && (
+                        <div className="mt-4">
+                          <h3 className="text-sm font-medium text-[#0a2b1d] mb-2">Search Results</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {searchResults.map(product => (
+                              <div 
+                                key={product.id}
+                                className="border rounded-lg p-3 cursor-pointer hover:border-[#00FF80] transition-colors"
+                                onClick={() => addProduct(product)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center">
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                      <span className="text-xs font-bold text-gray-600">#{product.id}</span>
+                                    </div>
+                                    <div className="ml-2">
+                                      <div className="font-medium text-[#0a2b1d]">{product.name}</div>
+                                      <div className="text-xs text-gray-600">{product.net_wt} {product.unit}</div>
+                                    </div>
+                                  </div>
+                                  <div className="text-right">
+                                    <div className="font-medium text-[#0a2b1d]">₹{product.sale_rate}</div>
+                                    <div className="inline-flex items-center bg-[#00FF80] text-[#0a2b1d] px-2 py-0.5 rounded text-xs">
+                                      <Plus size={10} className="mr-1" />
+                                      Add
                                     </div>
                                   </div>
                                 </div>
                               </div>
                             ))}
                           </div>
-                        )}
-                      </div>
-                      
-                      {/* Beef Products */}
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Beef</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'beef' || showProductSuggestions === 'beef' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="beef"
-                            value={formData.beef}
-                            onChange={handleInputChange}
-                            onFocus={() => {
-                              setFocusedField('beef');
-                              setShowProductSuggestions('beef');
-                            }}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Select beef products"
-                          />
-                          <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100"
-                            onClick={() => setShowProductSuggestions(prev => prev === 'beef' ? false : 'beef')}>
-                            <Search size={16} />
-                          </div>
                         </div>
-                        
-                        {/* Product suggestions */}
-                        {showProductSuggestions === 'beef' && (
-                          <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
-                            {productCatalog.beef.map((product) => (
-                              <div 
-                                key={product.id}
-                                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => addProduct(product, 'beef')}
-                              >
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                                    <Package size={16} className="text-gray-500" />
-                                  </div>
-                                  <div className="ml-2 flex-1">
-                                    <div className="font-medium text-[#0a2b1d] text-sm">{product.name}</div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-600">{product.description}</span>
-                                      <span className="font-medium text-[#0a2b1d]">₹{product.price}/{product.unit}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Pork Products */}
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Pork</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'pork' || showProductSuggestions === 'pork' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="pork"
-                            value={formData.pork}
-                            onChange={handleInputChange}
-                            onFocus={() => {
-                              setFocusedField('pork');
-                              setShowProductSuggestions('pork');
-                            }}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Select pork products"
-                          />
-                          <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100"
-                            onClick={() => setShowProductSuggestions(prev => prev === 'pork' ? false : 'pork')}>
-                            <Search size={16} />
-                          </div>
-                        </div>
-                        
-                        {/* Product suggestions */}
-                        {showProductSuggestions === 'pork' && (
-                          <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
-                            {productCatalog.pork.map((product) => (
-                              <div 
-                                key={product.id}
-                                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => addProduct(product, 'pork')}
-                              >
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                                    <Package size={16} className="text-gray-500" />
-                                  </div>
-                                  <div className="ml-2 flex-1">
-                                    <div className="font-medium text-[#0a2b1d] text-sm">{product.name}</div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-600">{product.description}</span>
-                                      <span className="font-medium text-[#0a2b1d]">₹{product.price}/{product.unit}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Fish Products */}
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Fish</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'fish' || showProductSuggestions === 'fish' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="fish"
-                            value={formData.fish}
-                            onChange={handleInputChange}
-                            onFocus={() => {
-                              setFocusedField('fish');
-                              setShowProductSuggestions('fish');
-                            }}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Select fish products"
-                          />
-                          <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100"
-                            onClick={() => setShowProductSuggestions(prev => prev === 'fish' ? false : 'fish')}>
-                            <Search size={16} />
-                          </div>
-                        </div>
-                        
-                        {/* Product suggestions */}
-                        {showProductSuggestions === 'fish' && (
-                          <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
-                            {productCatalog.fish.map((product) => (
-                              <div 
-                                key={product.id}
-                                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => addProduct(product, 'fish')}
-                              >
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                                    <Package size={16} className="text-gray-500" />
-                                  </div>
-                                  <div className="ml-2 flex-1">
-                                    <div className="font-medium text-[#0a2b1d] text-sm">{product.name}</div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-600">{product.description}</span>
-                                      <span className="font-medium text-[#0a2b1d]">₹{product.price}/{product.unit}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Goat Products */}
-                      <div className="relative">
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Goat</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'goat' || showProductSuggestions === 'goat' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="goat"
-                            value={formData.goat}
-                            onChange={handleInputChange}
-                            onFocus={() => {
-                              setFocusedField('goat');
-                              setShowProductSuggestions('goat');
-                            }}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Select goat products"
-                          />
-                          <div className="p-2 flex items-center text-[#0a2b1d] cursor-pointer border-l border-gray-300 bg-gray-100"
-                            onClick={() => setShowProductSuggestions(prev => prev === 'goat' ? false : 'goat')}>
-                            <Search size={16} />
-                          </div>
-                        </div>
-                        
-                        {/* Product suggestions */}
-                        {showProductSuggestions === 'goat' && (
-                          <div className="absolute z-20 mt-1 w-full bg-white rounded shadow-md max-h-64 overflow-auto border border-gray-200">
-                            {productCatalog.goat.map((product) => (
-                              <div 
-                                key={product.id}
-                                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-0"
-                                onClick={() => addProduct(product, 'goat')}
-                              >
-                                <div className="flex items-center">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 flex-shrink-0 flex items-center justify-center">
-                                    <Package size={16} className="text-gray-500" />
-                                  </div>
-                                  <div className="ml-2 flex-1">
-                                    <div className="font-medium text-[#0a2b1d] text-sm">{product.name}</div>
-                                    <div className="flex justify-between text-xs">
-                                      <span className="text-gray-600">{product.description}</span>
-                                      <span className="font-medium text-[#0a2b1d]">₹{product.price}/{product.unit}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Additional Items */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Additional Items</label>
-                        <div className={`flex rounded overflow-hidden border transition-all duration-200 ${
-                          focusedField === 'items' ? 'border-[#0a2b1d]' : 'border-gray-300'
-                        }`}>
-                          <input
-                            type="text"
-                            name="items"
-                            value={formData.items}
-                            onChange={handleInputChange}
-                            onFocus={() => setFocusedField('items')}
-                            onBlur={() => setFocusedField(null)}
-                            className="flex-1 p-2 outline-none text-[#0a2b1d] placeholder-gray-500"
-                            placeholder="Any other items"
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
+                    
+                    {/* Products Loading/Error States */}
+                    {isLoading ? (
+                      <div className="p-8 text-center">
+                        <div className="animate-spin w-8 h-8 border-2 border-[#00FF80] border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading products...</p>
+                      </div>
+                    ) : error ? (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded text-red-600 text-center">
+                        {error}
+                      </div>
+                    ) : !searchTerm ? (
+                      <div className="py-10 text-center">
+                        <div className="bg-gray-50 p-8 rounded-lg border border-gray-200 inline-block mx-auto">
+                          <Search size={28} className="text-gray-400 mx-auto mb-3" />
+                          <p className="text-[#0a2b1d] font-medium">Search for products</p>
+                          <p className="text-gray-500 text-sm mt-1">Type in the search box to find products</p>
+                        </div>
+                      </div>
+                    ) : null}
                     
                     {/* Selected Products List */}
                     {selectedProducts.length > 0 && (
-                      <div className="mt-3">
-                        <h3 className="text-sm font-medium text-[#0a2b1d] mb-1">Selected Products</h3>
-                        <div className="bg-gray-50 rounded border border-gray-200 overflow-hidden">
+                      <div className="mt-6">
+                        <h3 className="text-sm font-medium text-[#0a2b1d] mb-2">Selected Products</h3>
+                        <div className="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
                           <div className="divide-y divide-gray-200">
                             {selectedProducts.map((product) => (
-                              <div key={product.id} className="p-2 flex items-center">
-                                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0 flex items-center justify-center">
-                                  <Package size={16} className="text-gray-500" />
+                              <div key={product.id} className="p-3 flex items-center">
+                                <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 border border-gray-200 flex-shrink-0 flex items-center justify-center">
+                                  {product.id.toString().includes('custom') ? (
+                                    <Package size={16} className="text-gray-500" />
+                                  ) : (
+                                    <span className="text-xs font-bold text-gray-600">#{product.id}</span>
+                                  )}
                                 </div>
                                 <div className="ml-2 flex-1">
                                   <div className="flex justify-between">
@@ -853,30 +812,35 @@ const CreateOrder = () => {
                                     <span className="text-sm font-medium text-[#0a2b1d]">₹{product.price * product.quantity}</span>
                                   </div>
                                   <div className="flex justify-between items-center">
-                                    <div className="flex items-center border border-gray-300 rounded bg-white">
+                                    <div className="flex items-center text-xs text-gray-600">
+                                      <span>{product.net_wt} {product.unit} · ₹{product.price}/{product.unit}</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                      <div className="flex items-center border border-gray-300 rounded bg-white mr-2">
+                                        <button 
+                                          type="button"
+                                          className="p-1 text-[#0a2b1d] hover:bg-gray-100"
+                                          onClick={() => updateProductQuantity(product.id, -0.5)}
+                                        >
+                                          <Minus size={12} />
+                                        </button>
+                                        <span className="px-2 text-xs text-[#0a2b1d]">{product.quantity}</span>
+                                        <button 
+                                          type="button"
+                                          className="p-1 text-[#0a2b1d] hover:bg-gray-100"
+                                          onClick={() => updateProductQuantity(product.id, 0.5)}
+                                        >
+                                          <Plus size={12} />
+                                        </button>
+                                      </div>
                                       <button 
                                         type="button"
-                                        className="p-1 text-[#0a2b1d] hover:bg-gray-100"
-                                        onClick={() => updateProductQuantity(product.id, -1)}
+                                        className="p-1 text-[#0a2b1d] hover:bg-gray-100 rounded"
+                                        onClick={() => removeProduct(product.id)}
                                       >
-                                        <Minus size={12} />
-                                      </button>
-                                      <span className="px-2 text-xs text-[#0a2b1d]">{product.quantity}</span>
-                                      <button 
-                                        type="button"
-                                        className="p-1 text-[#0a2b1d] hover:bg-gray-100"
-                                        onClick={() => updateProductQuantity(product.id, 1)}
-                                      >
-                                        <Plus size={12} />
+                                        <X size={14} />
                                       </button>
                                     </div>
-                                    <button 
-                                      type="button"
-                                      className="p-1 text-[#0a2b1d] hover:bg-gray-100 rounded"
-                                      onClick={() => removeProduct(product.id)}
-                                    >
-                                      <X size={14} />
-                                    </button>
                                   </div>
                                 </div>
                               </div>
@@ -885,6 +849,18 @@ const CreateOrder = () => {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Add New Product Button */}
+                    <div className="mt-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddItemModal(true)}
+                        className="bg-[#0a2b1d] text-white px-4 py-2 rounded font-medium inline-flex items-center"
+                      >
+                        <PlusCircle size={16} className="mr-2" />
+                        Add Custom Product
+                      </button>
+                    </div>
                     
                     {/* Delivery Charge */}
                     <div className="mt-4">
@@ -1239,9 +1215,118 @@ const CreateOrder = () => {
         </div>
       </div>
       
+      {/* Add Item Modal */}
+      {showAddItemModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md">
+          <div className="bg-white rounded-lg shadow-lg p-5 max-w-md w-full mx-4 animate-fadeIn">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-[#0a2b1d]">Add New Product</h3>
+              <button 
+                type="button"
+                onClick={() => setShowAddItemModal(false)}
+                className="text-gray-400 hover:text-[#0a2b1d]"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Product Name</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={newItem.name}
+                  onChange={handleNewItemChange}
+                  className="w-full p-2 border border-gray-300 rounded outline-none focus:border-[#0a2b1d]"
+                  placeholder="Enter product name"
+                />
+              </div>
+              
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Price</label>
+                  <div className="flex rounded overflow-hidden border border-gray-300">
+                    <div className="bg-gray-100 p-2 flex items-center border-r border-gray-300 text-[#0a2b1d]">₹</div>
+                    <input
+                      type="number"
+                      name="price"
+                      value={newItem.price}
+                      onChange={handleNewItemChange}
+                      className="flex-1 p-2 outline-none text-[#0a2b1d]"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Unit</label>
+                  <select
+                    name="unit"
+                    value={newItem.unit}
+                    onChange={handleNewItemChange}
+                    className="w-full p-2 border border-gray-300 rounded outline-none focus:border-[#0a2b1d]"
+                  >
+                    <option value="kg">kg</option>
+                    <option value="g">g</option>
+                    <option value="pc">pc</option>
+                    <option value="box">box</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Net Weight</label>
+                <input
+                  type="text"
+                  name="net_wt"
+                  value={newItem.net_wt}
+                  onChange={handleNewItemChange}
+                  className="w-full p-2 border border-gray-300 rounded outline-none focus:border-[#0a2b1d]"
+                  placeholder="e.g. 500g, 1kg, etc."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#0a2b1d] mb-1">Description (Optional)</label>
+                <textarea
+                  name="description"
+                  value={newItem.description}
+                  onChange={handleNewItemChange}
+                  className="w-full p-2 border border-gray-300 rounded outline-none focus:border-[#0a2b1d] min-h-20"
+                  placeholder="Enter product description"
+                />
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowAddItemModal(false)}
+                  className="flex-1 py-2 bg-gray-200 text-[#0a2b1d] rounded font-medium hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={addCustomProduct}
+                  disabled={!newItem.name || !newItem.price}
+                  className={`flex-1 py-2 rounded font-medium ${
+                    !newItem.name || !newItem.price
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-[#00FF80] text-[#0a2b1d] hover:opacity-90'
+                  }`}
+                >
+                  Add Product
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Success Message - Premium Popup */}
       {showSuccess && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-30 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md">
           <div className="bg-white rounded-lg shadow-lg p-5 max-w-md w-full mx-4 transition-all duration-300 border-l-4 border-[#00FF80]">
             <div className="flex items-center mb-4">
               <div className="bg-[#00FF80]/10 p-2 rounded-full mr-3">
